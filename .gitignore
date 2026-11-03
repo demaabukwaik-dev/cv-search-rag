@@ -1,0 +1,29 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Google Drive OAuth credentials and tokens
+secrets/
+credentials.json
+client_secret*.json
+*:Zone.Identifier
+
+# Downloaded CVs and generated processing artifacts
+data/cvs/*
+!data/cvs/.gitkeep
+data/extracted/*
+!data/extracted/.gitkeep
+data/chunks/
+data/chunks_review/
+data/cache/
+data/embeddings_*.json
+data/token_counts_*.json
+data/evaluation_results.csv
+data/evaluation/runs/
+
+# Database backups and old files
+archive/

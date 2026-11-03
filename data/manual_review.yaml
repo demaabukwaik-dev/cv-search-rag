@@ -1,0 +1,79 @@
+- extractor: pymupdf
+  strategy: fixed
+  selected: false
+  notes: Cuts words in half and puts several sections in one chunk. Example - 01_Data_and_AI_Omar_Khalil.pdf, chunk 0 ends with "Machine Learnin".
+
+- extractor: llamaparse
+  strategy: fixed
+  selected: false
+  notes: Cuts words in half and puts several sections in one chunk.  Example - 01_Data_and_AI_Omar_Khalil.pdf, chunk 1 starts with "st"
+
+- extractor: pymupdf
+  strategy: token
+  selected: false
+  notes: Cuts words in half; chunks are larger than fixed, so more sections are mixed. Example - 01_Data_and_AI_Omar_Khalil.pdf, chunk 0 holds name, summary, skills and most of experience.
+
+- extractor: llamaparse
+  strategy: token
+  selected: false
+  notes: Cuts at a fixed token count; a cut list repeats because of the overlap. Example - a two-page CV (later removed from the set), the skills list is cut at the 180-token limit and its middle repeats in chunks 6 and 7 because of the 30-token overlap.
+
+- extractor: pymupdf
+  strategy: recursive
+  selected: false
+  notes: Cuts at line breaks, never inside a word; a heading is separated from a long paragraph. Example - 01_Data_and_AI_Omar_Khalil.pdf, "Junior Data Scientist" is in one chunk and its bullets in the next.
+
+- extractor: llamaparse
+  strategy: recursive
+  selected: false
+  notes: Cuts at line breaks, never inside a word; a short heading can become a chunk alone. Example - a two-page CV (later removed from the set), the "PROFESSIONAL GOALS" heading is a 7-token chunk on its own.
+
+- extractor: pymupdf
+  strategy: sentence
+  selected: false
+  notes: Never cuts a sentence, but abbreviations end a sentence by mistake. Example - 01_Data_and_AI_Omar_Khalil.pdf, "B.Sc." is read as a sentence end.
+
+- extractor: llamaparse
+  strategy: sentence
+  selected: false
+  notes: Never cuts a sentence; headings (no full stop) stick to the next sentence. Example - 01_Data_and_AI_Omar_Khalil.pdf, "### EDUCATION B.Sc." ends up on one line.
+
+- extractor: pymupdf
+  strategy: layout
+  selected: false
+  notes: Groups the extractor's paragraph blocks; a job title can be separated from its bullets. Example - in the 15 numbered CVs (01-15), the job title is in one chunk and its bullets in the next.
+
+- extractor: llamaparse
+  strategy: layout
+  selected: false
+  notes: Groups the extractor's paragraph blocks; a heading can end one chunk while its content starts the next. Example - a two-page CV (later removed from the set), the "KEY SKILLS" heading ends one chunk and the skills list is the next chunk.
+
+- extractor: pymupdf
+  strategy: section
+  selected: true
+  notes: One section per chunk with page and section name, headings found with a manual ALL-CAPS rule; long sections split jobs. Example - a two-page CV (later removed from the set), a company name is in one chunk and its job title and bullets in the next.
+
+- extractor: llamaparse
+  strategy: section
+  selected: false
+  notes: One section per chunk with page and section name; in 5 CVs the job title became its own section. Example - 08_Cybersecurity_Rana_Tarek.pdf, "Penetration Tester" section holds only the contact line.
+
+- extractor: pymupdf
+  strategy: hierarchical
+  selected: false
+  notes: Same sections as section; the LLM receives the whole section (parent), so split jobs arrive complete. Example - a two-page CV (later removed from the set), a question about the languages used in one of its jobs was answered with hierarchical, "Not found" with section.
+
+- extractor: llamaparse
+  strategy: hierarchical
+  selected: false
+  notes: Same sections as section; a parent can be almost empty. Example - 01_Data_and_AI_Omar_Khalil.pdf, Profile parent holds only his name (4 tokens).
+
+- extractor: pymupdf
+  strategy: semantic
+  selected: false
+  notes: Starts a chunk when sentence similarity drops below 0.75 (0.5 never split); one embedding call per sentence. Example - a two-page CV (later removed from the set), the summary paragraph became 5 one-sentence chunks; sizes range from 6 to 113 tokens.
+
+- extractor: llamaparse
+  strategy: semantic
+  selected: false
+  notes: Starts a chunk when sentence similarity drops below 0.75; one embedding call per sentence. Example - a two-page CV (later removed from the set), most jobs became one chunk each.
