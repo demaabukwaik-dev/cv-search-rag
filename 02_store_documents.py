@@ -5,7 +5,7 @@ from app.chunking import clean, sections, standard
 from app.db import get_connection
 from app.drive import connect, download, list_files
 from app.extract import extract_pdf
-from config import CVS_DIR, DRIVE_FOLDER_ID, MAX_FAR_RIGHT_SHARE, REQUIRED_SECTIONS, cv_file
+from config import DRIVE_FOLDER_ID, MAX_FAR_RIGHT_SHARE, REQUIRED_SECTIONS, cv_file
 
 SAVE_DOCUMENT = """
     INSERT INTO documents (drive_file_id, title, filename, content_hash, status, reasons, metadata)
@@ -99,22 +99,7 @@ def template_problems(pages, pdf_path):
  
  
 # ---------- the steps for one Drive file ----------
- 
-def link_old_cv(conn, drive_file_id, filename, content_hash):
-    """A CV loaded before Drive has its file name as its id: give it its Drive id and move its file to its
-    new place. Its chunks and vectors stay as they are. True if the file was one of these CVs."""
-    old = conn.execute("SELECT id FROM documents WHERE drive_file_id = %s", (filename,)).fetchone()
-    if not old:
-        return False
-    conn.execute("UPDATE documents SET drive_file_id = %s, content_hash = %s WHERE id = %s",
-                 (drive_file_id, content_hash, old[0]))
-    file = cv_file(drive_file_id, filename)
-    file.parent.mkdir(parents=True, exist_ok=True)
-    (CVS_DIR / filename).rename(file)
-    print(f"[linked] {filename}")
-    return True
- 
- 
+  
 def unchanged(conn, drive_file_id, content_hash):
     """True if this Drive file is already saved with the same content."""
     row = conn.execute("SELECT content_hash FROM documents WHERE drive_file_id = %s", (drive_file_id,)).fetchone()
@@ -152,8 +137,6 @@ with get_connection() as conn:
         drive_file_id, filename = item["id"], item["name"]
         content_hash = item.get("md5Checksum") or item["modifiedTime"]   # Drive's fingerprint of the content
 
-        if link_old_cv(conn, drive_file_id, filename, content_hash):
-            continue                   # a CV from before Drive: linked, nothing else to do
         if unchanged(conn, drive_file_id, content_hash):
             continue                   # same file, same content
 
