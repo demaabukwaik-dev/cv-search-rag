@@ -27,3 +27,4 @@ data/evaluation/runs/
 
 # Database backups and old files
 archive/
+clean_demo.dump

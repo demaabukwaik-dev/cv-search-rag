@@ -7,7 +7,6 @@ Run:  python 07_judge.py A1
 import json
 import subprocess
 import sys
-import config
 from app.answer import PRIVATE
 from config import BASE_DIR
 

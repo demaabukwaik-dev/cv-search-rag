@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE IF NOT EXISTS fields (
     id          BIGSERIAL PRIMARY KEY,
     field_name  TEXT NOT NULL UNIQUE,
-    description TEXT NOT NULL                        
+    code        TEXT NOT NULL UNIQUE
 );
 
 

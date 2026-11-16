@@ -68,9 +68,11 @@ def check(jobs, min_years, max_years, today, arabic):
     # 3. compare with the limits
     gap = 0
     note = ""
+
     if min_years and years < min_years:
         gap = min_years - years
         note = text["below"].format(n=min_years, gap=f"{gap:g}")
+        
     if max_years and years > max_years:
         gap = years - max_years
         note = text["above"].format(n=max_years, gap=f"{gap:g}")

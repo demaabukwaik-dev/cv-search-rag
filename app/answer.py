@@ -19,7 +19,9 @@ from app.search import search
 
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"],
                       http_options=types.HttpOptions(timeout=30_000))   # give up after 30 seconds
+
 FIT = {"full": 0, "partial": 1, "none": 2}   # the order candidates are shown in
+
 last_usage = None   # tokens of the last Gemini call, read by the evaluation
 last_raw = None     # Gemini's answer before the code changes it, read by the evaluation
 
@@ -59,6 +61,7 @@ class Result(BaseModel):
 
 
 # ---------- what the app shows ----------
+
 
 class Candidate(BaseModel):
     name: str
@@ -121,6 +124,20 @@ CVs:
 
 # ---------- the steps ----------
 
+def load_chunks(ids):
+    """Every part of each CV, in CV order: {document_id: [parts]}."""
+    with get_connection() as conn:
+        rows = conn.cursor(row_factory=dict_row).execute("""
+            SELECT document_id, content, metadata->>'page' AS page, metadata->>'section' AS section
+            FROM document_chunks
+            WHERE document_id = ANY(%s) AND combination_id = (SELECT id FROM combinations WHERE selected)
+            ORDER BY document_id, chunk_index""", (ids,)).fetchall()
+    by_cv = {}
+    for r in rows:
+        by_cv.setdefault(r["document_id"], []).append(r)
+    return by_cv
+
+
 def number_cvs(people):
     """Step 2. Every part of every CV gets a number. Returns the parts (to show as sources)
     and the text sent to Gemini (without contact details)."""
@@ -136,30 +153,20 @@ def number_cvs(people):
     return excerpts, cvs
 
 
-def load_chunks(ids):
-    """Every part of each CV, in CV order: {document_id: [parts]}."""
-    with get_connection() as conn:
-        rows = conn.cursor(row_factory=dict_row).execute("""
-            SELECT document_id, content, metadata->>'page' AS page, metadata->>'section' AS section
-            FROM document_chunks
-            WHERE document_id = ANY(%s) AND combination_id = (SELECT id FROM combinations WHERE selected)
-            ORDER BY document_id, chunk_index""", (ids,)).fetchall()
-    by_cv = {}
-    for r in rows:
-        by_cv.setdefault(r["document_id"], []).append(r)
-    return by_cv
-
-
 def ask_gemini(question, cvs, today, arabic):
     """Step 3. One call: Gemini reads the request, then checks every CV."""
     global last_usage, last_raw
     response = client.models.generate_content(
         model=os.environ["GENERATION_MODEL"],
-        contents=PROMPT.format(today=today, question=question, cvs=cvs,
+        contents=PROMPT.format(today=today,
+                               question=question,
+                               cvs=cvs,
                                language="Arabic" if arabic else "English"),
-        config=types.GenerateContentConfig(response_mime_type="application/json", response_schema=Result,
+
+        config=types.GenerateContentConfig(response_mime_type="application/json",
+                                           response_schema=Result,
                                            temperature=0),
-    )
+                                           )
     last_usage = response.usage_metadata
     last_raw = response.parsed.model_copy(deep=True)
     return response.parsed

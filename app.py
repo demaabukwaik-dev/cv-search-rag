@@ -3,6 +3,8 @@ import html
 import logging
 import re
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import httpx
 import streamlit as st
@@ -18,7 +20,10 @@ logging.getLogger("httpx").setLevel(logging.INFO)   # print every request to Gem
 
 st.set_page_config(page_title="CV Search", layout="wide")
 # each line takes its direction from its first letter: the job description and the message
-st.markdown("<style>textarea, [data-testid='stAlert'] p { unicode-bidi: plaintext; text-align: start; }</style>",
+# no link icon next to headings (it shows on hover)
+st.markdown("<style>textarea, [data-testid='stAlert'] p { unicode-bidi: plaintext; text-align: start; }"
+            "[data-testid='stHeaderActionElements'] { display: none; }"
+            "[data-testid='stAppDeployButton'], .stDeployButton { display: none; }</style>",
             unsafe_allow_html=True)
 
 
@@ -49,9 +54,9 @@ def cached_answer(question, user_id, fields, _on_step=None):
 
 
 def bidi(text):
-    """Keep each English phrase as one block, so it doesn't jump around in Arabic text.
-    The phrases are found in the raw text and escaped afterwards, so "&" is never split from its entity."""
-    parts = re.split(r"([A-Za-z][A-Za-z0-9 .,+#/&\-]*[A-Za-z0-9])", text)
+    """Keep each English phrase, and each source list like [2, 1], as one block, so it doesn't jump around
+    in Arabic text. The blocks are found in the raw text and escaped afterwards, so "&" is never split from its entity."""
+    parts = re.split(r"(\[[\d,\s]+\]|[A-Za-z][A-Za-z0-9 .,+#/&\-]*[A-Za-z0-9])", text)
     return "".join(f"<bdi>{html.escape(p)}</bdi>" if i % 2 else html.escape(p)
                    for i, p in enumerate(parts))
 
@@ -78,8 +83,33 @@ with st.sidebar:
     if st.button("Clear cache"):
         st.cache_data.clear()
 
-# ---------- tabs: Review is for the admin only ----------
-tabs = st.tabs(["Search", "Dashboard", "Review"] if is_admin else ["Search", "Dashboard"])
+# ---------- the daily review notice: for the admin, once a day, at the same time as the email report ----------
+REPORT_TIME = (9, 0)          # hour, minute (local time). Set it a minute ahead to test it.
+LOCAL = ZoneInfo("Asia/Hebron")
+
+
+def waiting_count():
+    with get_connection() as conn:
+        return conn.execute("SELECT count(*) FROM documents WHERE status = 'needs_review'").fetchone()[0]
+
+
+if is_admin:
+    @st.fragment(run_every="20s")
+    def daily_notice():
+        """Checks the clock every 20 seconds; after the report time, shows the notice once for today."""
+        now = datetime.now(LOCAL)
+        due = now.replace(hour=REPORT_TIME[0], minute=REPORT_TIME[1], second=0, microsecond=0)
+        shown = f"notice-{now.date()}"
+        if now >= due and shown not in st.session_state:
+            st.session_state[shown] = True
+            waiting = waiting_count()
+            if waiting:
+                st.toast(f"**Daily review report**  \n{waiting} CVs are waiting for review. Open the Review tab.")
+
+    daily_notice()
+
+# ---------- tabs: Review is for the admin only, with the number waiting ----------
+tabs = st.tabs(["Search", "Dashboard", f"Review ({waiting_count()})"] if is_admin else ["Search", "Dashboard"])
 
 with tabs[1]:
     show_dashboard(is_admin, allowed)

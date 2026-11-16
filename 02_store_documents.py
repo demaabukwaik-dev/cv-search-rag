@@ -1,18 +1,18 @@
 import re
 import pymupdf
 from psycopg.types.json import Jsonb
-from app.chunking import clean, sections, standard
+from app.chunking import clean, standard
 from app.db import get_connection
 from app.drive import connect, download, list_files
 from app.extract import extract_pdf
 from config import DRIVE_FOLDER_ID, MAX_FAR_RIGHT_SHARE, REQUIRED_SECTIONS, cv_file
 
 SAVE_DOCUMENT = """
-    INSERT INTO documents (drive_file_id, title, filename, content_hash, status, reasons, metadata)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    INSERT INTO documents (drive_file_id, title, filename, field_id, content_hash, status, reasons, metadata)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     ON CONFLICT (drive_file_id) DO UPDATE
     SET title = EXCLUDED.title,
-        field_id = NULL,
+        field_id = EXCLUDED.field_id,
         filename = EXCLUDED.filename,
         content_hash = EXCLUDED.content_hash,
         status = EXCLUDED.status,
@@ -21,7 +21,6 @@ SAVE_DOCUMENT = """
         updated_at = now()
     RETURNING id
 """
-
 
 def candidate_name(pages):
     """The CV's first line, if it looks like a name: 2 to 5 words, letters only."""
@@ -105,7 +104,18 @@ def unchanged(conn, drive_file_id, content_hash):
     row = conn.execute("SELECT content_hash FROM documents WHERE drive_file_id = %s", (drive_file_id,)).fetchone()
     return row is not None and row[0] == content_hash
 
- 
+
+def field_from_subject(conn, subject):
+    """The field whose code is the first word of the email subject, or None if the code is unknown."""
+    words = subject.split()
+    if not words:
+        return None
+    row = conn.execute("SELECT id FROM fields WHERE code = %s", (words[0],)).fetchone()
+    if row is None:
+        return None
+    return row[0]
+
+
 def check_cv(conn, drive, item, content_hash):
     """Download the CV, read it and list its problems. Returns title, status, reasons, page_count."""
     # 1. A duplicate of a CV we already have? -> failed, without downloading it
@@ -142,8 +152,17 @@ with get_connection() as conn:
 
         title, status, reasons, page_count = check_cv(conn, drive, item, content_hash)
 
+        subject = item.get("appProperties", {}).get("subject", "")   # n8n saves the email subject on the Drive file
+        field_id = field_from_subject(conn, subject)
+
+        if not subject:
+            reasons.append("No email subject")
+            
+        elif field_id is None:
+            reasons.append(f"No valid field code in the email subject: {subject}")
+
         with conn.transaction():
-            document_id = conn.execute(SAVE_DOCUMENT, (drive_file_id, title, filename, content_hash, status,
+            document_id = conn.execute(SAVE_DOCUMENT, (drive_file_id, title, filename, field_id, content_hash, status,
                                                        reasons, Jsonb({"page_count": page_count}))).fetchone()[0]
             conn.execute("DELETE FROM document_chunks WHERE document_id = %s", (document_id,))   # old chunks no longer match
 

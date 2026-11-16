@@ -12,4 +12,6 @@ def get_connection():
         user=os.environ["DB_USER"],
         password=os.environ["DB_PASSWORD"],
         autocommit=True,   # each statement saves on its own; conn.transaction() groups several
+        options="-c timezone=Asia/Hebron",   # show times in local time, not UTC
+
     )

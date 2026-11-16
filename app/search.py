@@ -1,6 +1,6 @@
 """Search: the request as it is becomes a vector, and one SQL query finds the closest candidates."""
-from psycopg.rows import dict_row
 
+from psycopg.rows import dict_row
 from app.db import get_connection
 from app.embedding import embed
 
@@ -33,7 +33,7 @@ SQL = """
 
 
 def search(question, user_id, fields, limit=5, on_step=lambda text: None):
-    """The closest candidates to the request, as it is: no call to read it first."""
+    """The closest candidates to the request"""
     on_step("Searching the CVs by meaning...")
     vector = embed([question], kind="query")[0]
     params = {"vector": str(vector), "user_id": user_id, "fields": list(fields), "limit": limit}

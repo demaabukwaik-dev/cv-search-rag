@@ -24,14 +24,14 @@ def connect():
 
 
 def list_files(drive, folder_id):
-    """Every file in the folder: id, name, type, and Drive's fingerprint of the content (md5Checksum).
-    Google Docs and Sheets have no md5Checksum."""
+    """Every file in the folder: id, name, type, Drive's fingerprint of the content (md5Checksum),
+    and properties (the email subject that n8n adds). Google Docs and Sheets have no md5Checksum."""
     files, page = [], None
     while True:
         result = drive.files().list(
             # q=f"'{folder_id}' in parents and trashed = false",
             q=f"'{folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'",
-            fields="nextPageToken, files(id, name, mimeType, md5Checksum, modifiedTime)",
+            fields="nextPageToken, files(id, name, mimeType, md5Checksum, modifiedTime, appProperties)",
             pageToken=page).execute()
         files += result["files"]
         page = result.get("nextPageToken")
