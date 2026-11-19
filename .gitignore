@@ -23,7 +23,7 @@ data/cache/
 data/embeddings_*.json
 data/token_counts_*.json
 data/evaluation_results.csv
-data/evaluation/runs/
+evaluation/runs/
 
 # Database backups and old files
 archive/

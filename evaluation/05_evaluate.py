@@ -1,11 +1,13 @@
 """Evaluation: run every test case through the RAG, compare the answer with the expected one,
 and save the results and the traces.
 
-Run:  python 05_evaluate.py A        (A = a name for this run)
+Run:  python evaluation/05_evaluate.py A        (A = a name for this run)
 """
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # project root, for app/ and config
 import csv
 import json
-import sys
 import time
 
 from app.answer import answer, PRIVATE
@@ -14,7 +16,7 @@ from app.db import get_connection
 from config import BASE_DIR
 
 RUN = sys.argv[1]
-EVAL_DIR = BASE_DIR / "data" / "evaluation"
+EVAL_DIR = BASE_DIR / "evaluation"
 OUT = EVAL_DIR / "runs" / RUN
 OUT.mkdir(parents=True, exist_ok=True)
 

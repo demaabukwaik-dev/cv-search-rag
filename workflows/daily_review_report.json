@@ -1,0 +1,107 @@
+{
+  "name": "Daily review report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b3a719a0-aab2-45fb-9ba0-7b8e94bfd244",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT count(*) AS total,\n       string_agg('- ' || title || ' (' || (current_date - created_at::date) || ' days): '\n                  || array_to_string(reasons, '; '), E'\\n' ORDER BY created_at) AS cvs\nFROM documents\nWHERE status = 'needs_review'\nHAVING count(*) > 0;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "c022d9b5-62cd-4f4b-8d32-d4e9d065febc",
+      "name": "CV database",
+      "credentials": {
+        "postgres": {
+          "id": "0ZlDMq0cCWVFRGmE",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "admin@gmail.com",
+        "subject": "={{ $json.total }} CVs waiting for review",
+        "emailType": "text",
+        "message": "=Good morning,\n\n{{ $json.total }} CVs are waiting for review:\n\n{{ $json.cvs }}\n\nOpen the Review tab in the CV app to approve or reject them.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        0
+      ],
+      "id": "f8ca220e-53c0-4057-a549-659fe42b5bb5",
+      "name": "Send a message",
+      "webhookId": "9b8b10c6-47b6-4bdb-bc35-be57262c28ed",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NM7U4e3lgPOIXWpf",
+          "name": "Gmail - CVs"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "CV database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CV database": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "596aea7e-effe-4401-8d76-81ac38a2df14",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eefdbe971643f46700e0dd2d0dc5bea89544168b88184b33b9e8ba8b1f0eeb04"
+  },
+  "nodeGroups": [],
+  "id": "isEChVD3MCCc2B6C",
+  "tags": []
+}

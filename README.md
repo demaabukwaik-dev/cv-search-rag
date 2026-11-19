@@ -20,7 +20,7 @@
 | Time per answer (average / median) | **5.8 s / 5.2 s** |
 | Tokens per question (sent / received) | ~2,150 / ~830 |
 
-B is the version kept after an A/B test against the baseline A: one prompt line fixed the salary question in 2 of 2 runs (A: 0 of 2), and nothing else changed. The one case that still fails is a search miss: a CV with the right skill is not among the 5 closest (see Known limitations). The full report, with every case, run and metric: [`data/evaluation/evaluation.md`](data/evaluation/evaluation.md).
+B is the version kept after an A/B test against the baseline A: one prompt line fixed the salary question in 2 of 2 runs (A: 0 of 2), and nothing else changed. The one case that still fails is a search miss: a CV with the right skill is not among the 5 closest (see Known limitations). The full report, with every case, run and metric: [`evaluation/evaluation.md`](evaluation/evaluation.md).
 
 ---
 
@@ -102,20 +102,22 @@ During development, every combination was built and reviewed before choosing how
 
 | Path | Purpose |
 |---|---|
-| `01_extract.py` | Development tool: extract text with one or both extractors (for the comparison) |
-| `02_store_documents.py` | Download CVs from Drive, run the ATS checks, save them to `documents` |
-| `03_store_chunks.py` | Chunk new CVs with the selected combination |
-| `04_embed_store_vectors.py` | Embed chunks in batches, assign each CV a field, set its status |
-| `05_evaluate.py` | Run the test cases, save results and traces |
-| `06_watch_drive.py` | Run steps 02 to 04 in a loop, pausing 60 seconds between passes |
-| `07_judge.py` | Grade a run with an LLM judge (calls the `claude` CLI) |
-| `export_chunks.py` | Development tool: dump the chunks in the database for manual review |
+| `scripts/01_extract.py` | Development tool: extract text with one or both extractors (for the comparison) |
+| `scripts/02_store_documents.py` | Download CVs from Drive, run the ATS checks, save them to `documents` |
+| `scripts/03_store_chunks.py` | Chunk new CVs with the selected combination |
+| `scripts/04_embed_store_vectors.py` | Embed chunks in batches, assign each CV a field, set its status |
+| `evaluation/05_evaluate.py` | Run the test cases, save results and traces |
+| `scripts/06_watch_drive.py` | Run steps 02 to 04 in a loop, pausing 60 seconds between passes |
+| `evaluation/07_judge.py` | Grade a run with an LLM judge (calls the `claude` CLI) |
+| `scripts/export_chunks.py` | Development tool: dump the chunks in the database for manual review |
 | `app.py` | Streamlit UI: Search, Dashboard, Review (admin only) |
 | `app/` | Extraction, chunking, embedding, search, answering, experience counting, Drive, DB, admin pages |
+| `workflows/email_intake.json` | n8n: saves emailed CVs to the Drive folder, with the email subject on each file |
+| `workflows/daily_review_report.json` | n8n: morning email of CVs waiting for review |
 | `config.py` | Paths, section headings, field thresholds, ATS rules |
 | `sql/schema.sql`, `sql/seed.sql` | Database schema, sample fields and users |
 | `data/manual_review.yaml` | Review notes for the 16 combinations. Also a pipeline input: step 03 chunks with the entry marked `selected: true` |
-| `data/evaluation/` | Test cases (`eval_cases.json`) and the evaluation report (`evaluation.md`) |
+| `evaluation/` | Test cases (`eval_cases.json`) and the evaluation report (`evaluation.md`) |
 
 ---
 
@@ -211,7 +213,7 @@ DRIVE_FOLDER_ID=...        # from step 4
 
 ### 6. Add CVs
 
-Upload PDF CVs to the Drive folder. The 15 CVs used during development are not in this repository. The test cases in `data/evaluation/` were written for those 15 CVs, so with other CVs their expected answers must be rewritten.
+Upload PDF CVs to the Drive folder. The 15 CVs used during development are not in this repository. The test cases in `evaluation/` were written for those 15 CVs, so with other CVs their expected answers must be rewritten.
 
 ---
 
@@ -222,15 +224,15 @@ Upload PDF CVs to the Drive folder. The 15 CVs used during development are not i
 Once:
 
 ```bash
-python 02_store_documents.py
-python 03_store_chunks.py
-python 04_embed_store_vectors.py
+python scripts/02_store_documents.py
+python scripts/03_store_chunks.py
+python scripts/04_embed_store_vectors.py
 ```
 
 Or keep watching the Drive folder:
 
 ```bash
-python 06_watch_drive.py
+python scripts/06_watch_drive.py
 ```
 
 The watcher runs the three steps, waits 60 seconds, and repeats. It stops if a step fails (for example, a network error), so restart it after fixing the cause.
@@ -248,11 +250,11 @@ Choose a user in the sidebar (a demo picker; real sign-in is out of scope). Ever
 ### 3. Evaluate
 
 ```bash
-python 05_evaluate.py A1      # writes to data/evaluation/runs/A1/
-python 07_judge.py A1         # grades A1 with an LLM judge
+python evaluation/05_evaluate.py A1      # writes to evaluation/runs/A1/
+python evaluation/07_judge.py A1         # grades A1 with an LLM judge
 ```
 
-Results are saved locally in `data/evaluation/runs/A1/` (`results.csv`, `traces.json`, `judge.json`); this folder is git-ignored. The judge needs [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) installed and signed in.
+Results are saved locally in `evaluation/runs/A1/` (`results.csv`, `traces.json`, `judge.json`); this folder is git-ignored. The judge needs [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) installed and signed in.
 
 ---
 

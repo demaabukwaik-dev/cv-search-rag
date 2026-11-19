@@ -1,4 +1,7 @@
 """Step 3: chunk every CV that has no chunks yet, with the selected combination."""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # project root, for app/ and config
 import os
 import yaml
 from psycopg.types.json import Jsonb

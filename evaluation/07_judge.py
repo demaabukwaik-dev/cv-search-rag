@@ -1,19 +1,20 @@
 """
 Step 7: LLM as a judge.
 Claude Code grades every answer of one run.
-Run:  python 07_judge.py A1
+Run:  python evaluation/07_judge.py A1
 """
-
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # project root, for app/ and config
 import json
 import subprocess
-import sys
 from app.answer import PRIVATE
 from config import BASE_DIR
 
 
 # Configuration
 RUN = sys.argv[1]
-EVAL_DIR = BASE_DIR / "data" / "evaluation"
+EVAL_DIR = BASE_DIR / "evaluation"
 RUN_DIR = EVAL_DIR / "runs" / RUN
 
 

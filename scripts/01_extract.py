@@ -1,4 +1,6 @@
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # project root, for app/ and config
 from dotenv import load_dotenv
 from app.extract import extract_pdf  
 from config import CVS_DIR  

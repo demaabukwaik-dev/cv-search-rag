@@ -1,3 +1,6 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # project root, for app/ and config
 from app.db import get_connection
 from app.embedding import embed, BATCH_SIZE
 
